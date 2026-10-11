@@ -43,3 +43,17 @@ resource "aws_iam_instance_profile" "app" {
   name = "taskflow-app-profile"
   role = aws_iam_role.app.name
 }
+# Permission: read ONLY the database secret
+resource "aws_iam_role_policy" "secret_read" {
+  name = "taskflow-secret-read"
+  role = aws_iam_role.app.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = aws_secretsmanager_secret.db.arn
+    }]
+  })
+}
