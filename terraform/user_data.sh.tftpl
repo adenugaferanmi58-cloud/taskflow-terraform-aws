@@ -1,0 +1,56 @@
+#!/bin/bash
+set -euxo pipefail
+exec > >(tee /var/log/user-data.log) 2>&1
+
+# 1. Install Python tools
+apt-get update -y
+apt-get install -y python3-venv python3-pip
+
+# 2. Create a private Python environment for the app
+mkdir -p /opt/taskflow
+cd /opt/taskflow
+python3 -m venv venv
+/opt/taskflow/venv/bin/pip install boto3
+
+# 3. Download the app files from S3 (the server's IAM role gives it permission)
+/opt/taskflow/venv/bin/python - <<'PY'
+import os
+import boto3
+
+s3 = boto3.client("s3", region_name="${region}")
+bucket = "${bucket}"
+
+for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix="app/"):
+    for obj in page.get("Contents", []):
+        key = obj["Key"]
+        if key.endswith("/"):
+            continue
+        dest = os.path.join("/opt/taskflow", key[len("app/"):])
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        s3.download_file(bucket, key, dest)
+PY
+
+# 4. Install the app's requirements
+/opt/taskflow/venv/bin/pip install -r /opt/taskflow/requirements.txt
+chown -R ubuntu:ubuntu /opt/taskflow
+
+# 5. Run the app as a service that starts on boot and restarts if it crashes
+cat > /etc/systemd/system/taskflow.service <<'EOF'
+[Unit]
+Description=TaskFlow
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/taskflow
+Environment=DB_SECRET_NAME=${secret_name}
+Environment=AWS_REGION=${region}
+ExecStart=/opt/taskflow/venv/bin/gunicorn --workers 1 --threads 4 --bind 0.0.0.0:5000 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now taskflow
