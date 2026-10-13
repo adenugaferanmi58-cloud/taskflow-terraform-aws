@@ -34,7 +34,11 @@ class Task(db.Model):
 
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception:
+        # Another server may have created the table at the same moment.
+        db.session.rollback()
 
 
 @app.route("/")
