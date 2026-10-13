@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskFlow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="card">
+    <header class="top">
+      <div>
+        <h1>TaskFlow</h1>
+        <p class="subtitle">Keep track of what matters today.</p>
+      </div>
+      <span class="badge" id="count">0 open</span>
+    </header>
+
+    <form id="form" class="add">
+      <input type="text" id="title" placeholder="What needs doing?" maxlength="200" autocomplete="off" required>
+      <button type="submit">Add task</button>
+    </form>
+
+    <ul id="list"></ul>
+    <p id="empty" class="empty" hidden>Nothing here yet. Add your first task above.</p>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
