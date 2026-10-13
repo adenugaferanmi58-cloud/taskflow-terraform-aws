@@ -16,7 +16,7 @@ def get_database_url():
 
     client = boto3.client("secretsmanager", region_name=os.environ.get("AWS_REGION", "us-east-1"))
     s = json.loads(client.get_secret_value(SecretId=secret_name)["SecretString"])
-    return f"postgresql://{s['username']}:{s['password']}@{s['host']}:{s['port']}/{s['dbname']}"
+    return f"postgresql+psycopg2://{s['username']}:{s['password']}@{s['host']}:{s['port']}/{s['dbname']}"
 
 
 app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url()
