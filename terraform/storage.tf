@@ -23,3 +23,20 @@ resource "aws_s3_bucket_public_access_block" "app" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
+locals {
+  app_files = [
+    "app.py",
+    "requirements.txt",
+    "templates/index.html",
+    "static/style.css",
+    "static/app.js",
+  ]
+}
+resource "aws_s3_object" "app_files" {
+  for_each = toset(local.app_files)
+
+  bucket = aws_s3_bucket.app.id
+  key    = "app/${each.value}"
+  source = "${path.module}/../app/${each.value}"
+  etag   = filemd5("${path.module}/../app/${each.value}")
+}
