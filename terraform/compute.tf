@@ -27,9 +27,10 @@ resource "aws_launch_template" "app" {
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
-    bucket      = aws_s3_bucket.app.id
-    secret_name = aws_secretsmanager_secret.db.name
-    region      = "us-east-1"
+    ecr_repo     = aws_ecr_repository.app.repository_url
+    ecr_registry = split("/", aws_ecr_repository.app.repository_url)[0]
+    secret_name  = aws_secretsmanager_secret.db.name
+    region       = "us-east-1"
   }))
 
   tag_specifications {

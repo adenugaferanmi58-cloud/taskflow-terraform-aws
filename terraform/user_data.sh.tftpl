@@ -1,64 +1,25 @@
 #!/bin/bash
 set -euxo pipefail
 
-# 1. Install system packages
+# 1. Install Docker and tools
 apt-get update -y
-apt-get install -y python3-venv python3-pip
+apt-get install -y docker.io unzip curl
+systemctl enable --now docker
 
-# 2. Create the app folder and a virtual environment
-mkdir -p /opt/taskflow
-python3 -m venv /opt/taskflow/venv
-/opt/taskflow/venv/bin/pip install boto3
+# 2. Install the AWS CLI (needed to log in to ECR)
+curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
 
-# 3. Download the app files from S3 (everything under app/)
-/opt/taskflow/venv/bin/python - <<'PY'
-import os
-import boto3
+# 3. Log in to ECR, using the server's IAM role (no keys)
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecr_registry}
 
-bucket = "${bucket}"
-prefix = "app/"
-dest = "/opt/taskflow"
-
-s3 = boto3.client("s3", region_name="${region}")
-paginator = s3.get_paginator("list_objects_v2")
-
-for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-    for obj in page.get("Contents", []):
-        key = obj["Key"]
-        if key.endswith("/"):
-            continue
-        path = os.path.join(dest, key[len(prefix):])
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        s3.download_file(bucket, key, path)
-        print("downloaded", key)
-PY
-
-# 4. Install the app's Python packages
-/opt/taskflow/venv/bin/pip install -r /opt/taskflow/requirements.txt
-
-# 5. Give the ubuntu user ownership
-chown -R ubuntu:ubuntu /opt/taskflow
-
-# 6. Create the systemd service so the app starts on boot and restarts if it crashes
-cat > /etc/systemd/system/taskflow.service <<'EOF'
-[Unit]
-Description=TaskFlow Flask app
-StartLimitIntervalSec=0
-After=network.target
-
-[Service]
-User=ubuntu
-WorkingDirectory=/opt/taskflow
-Environment=DB_SECRET_NAME=${secret_name}
-Environment=AWS_REGION=${region}
-ExecStart=/opt/taskflow/venv/bin/gunicorn --workers 1 --threads 4 --bind 0.0.0.0:5000 app:app
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# 7. Start it now and on every boot
-systemctl daemon-reload
-systemctl enable --now taskflow
+# 4. Pull and run the container. It restarts itself if it crashes or the server reboots.
+docker pull ${ecr_repo}:latest
+docker run -d \
+  --name taskflow \
+  --restart always \
+  --network host \
+  -e DB_SECRET_NAME=${secret_name} \
+  -e AWS_REGION=${region} \
+  ${ecr_repo}:latest
