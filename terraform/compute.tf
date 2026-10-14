@@ -26,7 +26,7 @@ resource "aws_launch_template" "app" {
     http_tokens   = "required"
   }
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
+    user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
     ecr_repo     = aws_ecr_repository.app.repository_url
     ecr_registry = split("/", aws_ecr_repository.app.repository_url)[0]
     secret_name  = aws_secretsmanager_secret.db.name

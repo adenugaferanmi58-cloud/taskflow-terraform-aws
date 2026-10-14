@@ -1,21 +1,24 @@
 #!/bin/bash
 set -euxo pipefail
 
-# 1. Install Docker and tools
 apt-get update -y
 apt-get install -y docker.io unzip curl
 systemctl enable --now docker
 
-# 2. Install the AWS CLI (needed to log in to ECR)
+fallocate -l 1G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
 curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
 unzip -q /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install
 
-# 3. Log in to ECR, using the server's IAM role (no keys)
 aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecr_registry}
 
-# 4. Pull and run the container. It restarts itself if it crashes or the server reboots.
 docker pull ${ecr_repo}:latest
+
 docker run -d \
   --name taskflow \
   --restart always \
@@ -23,3 +26,4 @@ docker run -d \
   -e DB_SECRET_NAME=${secret_name} \
   -e AWS_REGION=${region} \
   ${ecr_repo}:latest
+
