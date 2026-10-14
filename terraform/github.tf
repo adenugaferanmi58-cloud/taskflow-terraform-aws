@@ -25,7 +25,10 @@ data "aws_iam_policy_document" "github_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:adenugaferanmi58-cloud/taskflow-terraform-aws:ref:refs/heads/main"]
+      values = [
+        "repo:adenugaferanmi58-cloud@290676553/taskflow-terraform-aws@1418595044:ref:refs/heads/main",
+        "repo:adenugaferanmi58-cloud/taskflow-terraform-aws:ref:refs/heads/main"
+      ]
     }
   }
 }
