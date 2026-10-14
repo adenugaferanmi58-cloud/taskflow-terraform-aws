@@ -110,3 +110,4 @@ Cloud Engineer
 
 * GitHub: [adenugaferanmi58-cloud](https://github.com/adenugaferanmi58-cloud)
 * Project: TaskFlow — AWS Cloud Deployment with Terraform, Docker, and GitHub Actions
+CI/CD: Automated deployment using GitHub Actions, Docker, Amazon ECR, and AWS Auto Scaling.
