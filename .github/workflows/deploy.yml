@@ -1,9 +1,12 @@
 name: Deploy TaskFlow
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+     push:
+       branches: [main]
+       paths-ignore:
+         - "README.md"
+         - "k8s/**"
+     workflow_dispatch:
 
 permissions:
   id-token: write
